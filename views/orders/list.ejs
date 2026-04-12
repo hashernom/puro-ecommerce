@@ -1,0 +1,42 @@
+<div class="container mt-5 mb-5">
+    <h1 class="fw-bold mb-4">Mis Pedidos</h1>
+    <div id="orders-container">
+        <div class="text-center py-5">
+            <div class="spinner-border text-success" role="status"></div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const response = await fetch('/orders/user/api');
+        const data = await response.json();
+        const container = document.getElementById('orders-container');
+        if (!data.success || data.data.length === 0) {
+            container.innerHTML = `<div class="text-center py-5">
+                <i class="bi bi-bag display-1 text-secondary mb-3"></i>
+                <h4 class="text-secondary">No tienes pedidos aún</h4>
+                <a href="/products" class="btn btn-success mt-3">Ver productos</a>
+            </div>`;
+            return;
+        }
+        const statusLabels = { pending: 'Pendiente', processing: 'Procesando', shipped: 'Enviado', delivered: 'Entregado', cancelled: 'Cancelado' };
+        const statusColors = { pending: 'warning', processing: 'info', shipped: 'primary', delivered: 'success', cancelled: 'danger' };
+        container.innerHTML = data.data.map(order => `
+            <div class="card shadow-sm rounded-4 mb-3">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0 fw-bold">Pedido #${order.id}</h6>
+                        <span class="badge bg-${statusColors[order.status] || 'secondary'}">${statusLabels[order.status] || order.status}</span>
+                    </div>
+                    <p class="text-secondary mb-1"><small>${new Date(order.created_at).toLocaleDateString('es-CO')}</small></p>
+                    <p class="mb-1"><strong>Total:</strong> $${parseFloat(order.total_amount).toFixed(2)}</p>
+                    <p class="mb-0"><strong>Items:</strong> ${order.orderDetails ? order.orderDetails.length : 0} productos</p>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        document.getElementById('orders-container').innerHTML = '<div class="alert alert-danger">Error cargando pedidos.</div>';
+    }
+});
+</script>

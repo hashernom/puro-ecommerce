@@ -1,0 +1,93 @@
+<div class="container mt-5 mb-5">
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Inicio</a></li>
+      <li class="breadcrumb-item"><a href="/products" class="text-decoration-none">Productos</a></li>
+      <li class="breadcrumb-item active"><%= product.name %></li>
+    </ol>
+  </nav>
+
+  <div class="row g-5">
+    <!-- Imagen -->
+    <div class="col-lg-5">
+      <div class="rounded-4 overflow-hidden shadow-sm" style="height:420px; background:linear-gradient(135deg,#d4edda,#fff3cd); display:flex;align-items:center;justify-content:center;">
+        <img src="<%= product.image_url || '/images/default-product.svg' %>"
+          alt="<%= product.name %>"
+          class="img-fluid" style="max-height:100%;object-fit:cover;"
+          onerror="this.src='/images/default-product.svg'">
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="col-lg-7">
+      <span class="badge bg-success mb-2">Natural</span>
+      <h1 class="fw-bold mb-3"><%= product.name %></h1>
+      <p class="lead text-secondary mb-4"><%= product.description || 'Shot vitamínico natural de alta calidad.' %></p>
+
+      <div class="d-flex align-items-center gap-4 mb-4">
+        <span class="display-6 fw-bold text-success">$<%= parseFloat(product.price).toFixed(2) %></span>
+        <% if (product.stock <= 0) { %>
+          <span class="badge bg-danger fs-6">Sin stock</span>
+        <% } else if (product.stock <= 5) { %>
+          <span class="badge bg-warning text-dark fs-6"><i class="bi bi-exclamation-triangle me-1"></i>Pocas unidades (<%= product.stock %>)</span>
+        <% } else { %>
+          <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>En stock (<%= product.stock %> uds)</span>
+        <% } %>
+      </div>
+
+      <% if (product.stock > 0) { %>
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <label class="fw-semibold">Cantidad:</label>
+          <div class="input-group" style="width:130px;">
+            <button class="btn btn-outline-secondary" onclick="changeQty(-1)">-</button>
+            <input type="number" id="qty" class="form-control text-center" value="1" min="1" max="<%= product.stock %>">
+            <button class="btn btn-outline-secondary" onclick="changeQty(1)">+</button>
+          </div>
+        </div>
+        <button class="btn btn-success btn-lg w-100 mb-3"
+          onclick="addToCartDetail(<%= product.id %>)">
+          <i class="bi bi-cart-plus me-2"></i>Agregar al carrito
+        </button>
+      <% } else { %>
+        <button class="btn btn-secondary btn-lg w-100 mb-3" disabled>Sin stock</button>
+      <% } %>
+
+      <div class="row text-center mt-4 g-3">
+        <div class="col-4">
+          <i class="bi bi-leaf text-success fs-3 mb-1 d-block"></i>
+          <small class="text-secondary">100% Natural</small>
+        </div>
+        <div class="col-4">
+          <i class="bi bi-truck text-success fs-3 mb-1 d-block"></i>
+          <small class="text-secondary">Envío rápido</small>
+        </div>
+        <div class="col-4">
+          <i class="bi bi-shield-check text-success fs-3 mb-1 d-block"></i>
+          <small class="text-secondary">Garantía</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function changeQty(delta) {
+    const input = document.getElementById('qty');
+    const max   = parseInt(input.getAttribute('max'));
+    const val   = Math.max(1, Math.min(max, parseInt(input.value) + delta));
+    input.value = val;
+}
+async function addToCartDetail(productId) {
+    const qty = parseInt(document.getElementById('qty').value);
+    if (!document.querySelector('.navbar-nav .dropdown-toggle')) {
+        if (confirm('Debes iniciar sesión. ¿Ir al login?')) window.location.href = '/auth/login';
+        return;
+    }
+    try {
+        const res  = await fetch('/orders/cart', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ productId, quantity: qty }) });
+        const data = await res.json();
+        if (data.success) { alert('¡Producto agregado al carrito!'); window.location.href = '/orders/cart'; }
+        else alert(data.message || 'Error al agregar');
+    } catch (e) { alert('Error de conexión'); }
+}
+</script>

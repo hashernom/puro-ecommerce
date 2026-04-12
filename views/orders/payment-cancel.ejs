@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5 text-center">
+                        <div class="mb-4">
+                            <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                                <i class="bi bi-x-circle-fill text-warning" style="font-size: 4rem;"></i>
+                            </div>
+                            <h1 class="h2 fw-bold text-warning">Pago Cancelado</h1>
+                            <p class="text-muted mb-0">El proceso de pago ha sido interrumpido.</p>
+                        </div>
+
+                        <div class="alert alert-warning border-0 bg-light-warning mb-4">
+                            <div class="d-flex">
+                                <i class="bi bi-exclamation-triangle-fill text-warning me-3 mt-1"></i>
+                                <div>
+                                    <h5 class="alert-heading mb-1">No se completó el pago</h5>
+                                    <p class="mb-0">Tu pedido ha sido guardado pero permanece pendiente de pago.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <% if (orderId) { %>
+                        <div class="card border-0 bg-light mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Detalles del pedido</h5>
+                                <p class="mb-2">
+                                    <span class="text-muted">Número de pedido:</span>
+                                    <span class="fw-bold">#<%= orderId %></span>
+                                </p>
+                                <p class="mb-0 text-muted small">
+                                    Puedes reintentar el pago desde la sección "Mis Pedidos".
+                                </p>
+                            </div>
+                        </div>
+                        <% } %>
+
+                        <div class="d-grid gap-3">
+                            <a href="/orders/cart" class="btn btn-warning btn-lg">
+                                <i class="bi bi-cart me-2"></i> Volver al carrito
+                            </a>
+                            <a href="/products" class="btn btn-outline-warning btn-lg">
+                                <i class="bi bi-arrow-left me-2"></i> Seguir comprando
+                            </a>
+                            <a href="/orders/user" class="btn btn-link text-decoration-none">
+                                <i class="bi bi-list-check me-1"></i> Ver mis pedidos
+                            </a>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="text-muted small">
+                            <p class="mb-1">
+                                <i class="bi bi-question-circle me-1"></i> 
+                                Si crees que esto es un error, contáctanos en 
+                                <a href="mailto:soporte@puro.com" class="text-decoration-none">soporte@puro.com</a>
+                            </p>
+                            <p class="mb-0">
+                                <i class="bi bi-shield-check me-1"></i> 
+                                Tus datos de pago están protegidos por Stripe.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

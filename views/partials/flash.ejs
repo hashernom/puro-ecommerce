@@ -1,0 +1,25 @@
+<% if (typeof errors !== 'undefined' && errors && errors.length > 0) { %>
+    <div class="container mt-3">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Error:</strong>
+            <ul class="mb-0 mt-2"><% errors.forEach(e => { %><li><%= e.msg || e.message || e %></li><% }); %></ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+<% } %>
+<% if (typeof success !== 'undefined' && success) { %>
+    <div class="container mt-3">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i><strong>¡Éxito!</strong> <%= success %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+<% } %>
+<% if (typeof info !== 'undefined' && info) { %>
+    <div class="container mt-3">
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i><%= info %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+<% } %>

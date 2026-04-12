@@ -1,0 +1,53 @@
+<div class="container mt-5 mb-5">
+    <h1 class="fw-bold mb-4">Mi Perfil</h1>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <form method="POST" action="/auth/profile">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Nombre</label>
+                                <input type="text" class="form-control" name="first_name"
+                                    value="<%= user ? user.first_name : '' %>" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Apellido</label>
+                                <input type="text" class="form-control" name="last_name"
+                                    value="<%= user ? user.last_name : '' %>" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" class="form-control" value="<%= user ? user.email : '' %>" disabled>
+                        </div>
+                        <hr class="my-4">
+                        <h6 class="fw-semibold mb-3">Cambiar Contraseña (opcional)</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Contraseña actual</label>
+                            <input type="password" class="form-control" name="current_password" placeholder="••••••••">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nueva contraseña</label>
+                            <input type="password" class="form-control" name="new_password" placeholder="••••••••">
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Guardar cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-light border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h5>Información de cuenta</h5>
+                    <p class="mb-1"><strong>Nombre:</strong> <%= user ? user.first_name + ' ' + user.last_name : '' %></p>
+                    <p class="mb-1"><strong>Email:</strong> <%= user ? user.email : '' %></p>
+                    <p class="mb-3"><strong>Rol:</strong> <span class="badge bg-success"><%= user ? user.role : '' %></span></p>
+                    <a href="/orders/user" class="btn btn-outline-success btn-sm">Ver mis pedidos</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
