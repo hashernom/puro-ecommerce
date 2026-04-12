@@ -7,10 +7,11 @@ const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const expressLayouts = require('express-ejs-layouts');
 const helmet = require('helmet');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 const { sequelize } = require('./models');
 const { loadUser } = require('./middleware/auth');
-const { generateToken, injectCsrfToken } = require('./middleware/csrf');
+const { generateToken, doubleCsrfProtection } = require('./middleware/csrf-real');
 
 const authRoutes    = require('./routes/auth');
 const productRoutes = require('./routes/products');
@@ -23,6 +24,28 @@ const app  = express();
 const PORT = process.env.PORT || 3001;
 const ENV  = process.env.NODE_ENV || 'development';
 
+// ── Validación de variables de entorno críticas ────────────────────────────
+const validateEnvVars = () => {
+    const criticalVars = ['SESSION_SECRET'];
+    
+    if (ENV === 'production') {
+        const missingVars = criticalVars.filter(varName => !process.env[varName]);
+        if (missingVars.length > 0) {
+            throw new Error(`❌ Variables de entorno críticas faltantes en producción: ${missingVars.join(', ')}`);
+        }
+    }
+    
+    // Advertencias en desarrollo
+    criticalVars.forEach(varName => {
+        if (!process.env[varName]) {
+            console.warn(`⚠️  Advertencia: ${varName} no está definida. Usando valor por defecto (inseguro para producción).`);
+        }
+    });
+};
+
+// Ejecutar validación
+validateEnvVars();
+
 // ── Seguridad ──────────────────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: { directives: {
     defaultSrc: ["'self'"],
@@ -31,7 +54,74 @@ app.use(helmet({ contentSecurityPolicy: { directives: {
     imgSrc:     ["'self'", "data:", "https:"],
     fontSrc:    ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"]
 }}}));
-app.use(cors());
+
+// Headers de seguridad adicionales
+app.use((req, res, next) => {
+    // X-Content-Type-Options: previene MIME type sniffing
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    
+    // X-Frame-Options: previene clickjacking (Helmet ya lo hace, pero lo reforzamos)
+    res.setHeader('X-Frame-Options', 'DENY');
+    
+    // X-XSS-Protection: protección XSS (para navegadores antiguos)
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // Referrer-Policy: controla información del referrer
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    
+    // Permissions-Policy: controla características del navegador
+    res.setHeader('Permissions-Policy',
+        'camera=(), microphone=(), geolocation=(), payment=()'
+    );
+    
+    // Cache-Control para respuestas sensibles
+    if (req.path.includes('/admin') || req.path.includes('/auth')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    }
+    
+    next();
+});
+
+// Configuración CORS segura
+const corsOptions = {
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000'],
+    methods: process.env.ALLOWED_METHODS ? process.env.ALLOWED_METHODS.split(',') : ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: process.env.ALLOWED_HEADERS ? process.env.ALLOWED_HEADERS.split(',') : ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    credentials: process.env.CORS_CREDENTIALS === 'true',
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// ── Rate Limiting ─────────────────────────────────────────────────────────
+// Limitar peticiones para prevenir ataques de fuerza bruta y DDoS
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // Límite de 100 peticiones por IP por ventana
+    message: {
+        success: false,
+        error: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo en 15 minutos'
+    },
+    standardHeaders: true, // Retorna información de rate limit en headers
+    legacyHeaders: false, // Desactiva headers legacy
+});
+
+// Limiter más estricto para autenticación
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 10, // Solo 10 intentos de login por IP
+    message: {
+        success: false,
+        error: 'Demasiados intentos de autenticación, por favor intenta de nuevo en 15 minutos'
+    },
+    skipSuccessfulRequests: true, // No contar peticiones exitosas
+});
+
+// Aplicar rate limiting
+app.use(generalLimiter); // Aplicar a todas las rutas
+app.use('/auth/login', authLimiter);
+app.use('/auth/register', authLimiter);
+app.use('/auth/forgot-password', authLimiter);
+app.use('/auth/reset-password', authLimiter);
 
 // ── Vistas y motor EJS ────────────────────────────────────────────────────
 app.set('view engine', 'ejs');
@@ -47,8 +137,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── Sesiones ──────────────────────────────────────────────────────────────
 const sessionStore = new SequelizeStore({ db: sequelize });
 
+// Generar secret de sesión seguro
+const getSessionSecret = () => {
+    if (process.env.SESSION_SECRET) {
+        return process.env.SESSION_SECRET;
+    }
+    
+    // Solo en desarrollo: generar un secret aleatorio
+    if (ENV === 'development') {
+        const crypto = require('crypto');
+        const devSecret = crypto.randomBytes(32).toString('hex');
+        console.warn(`⚠️  SESSION_SECRET no definida. Usando secret aleatorio para desarrollo: ${devSecret.substring(0, 16)}...`);
+        return devSecret;
+    }
+    
+    // En producción, la validación ya falló, pero por si acaso
+    throw new Error('SESSION_SECRET no está definida para entorno de producción');
+};
+
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'puro-fallback-secret',
+    secret: getSessionSecret(),
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -64,7 +172,6 @@ sessionStore.sync();
 // ── Middleware global ─────────────────────────────────────────────────────
 app.use(loadUser);
 app.use(generateToken); // Generar token CSRF para todas las rutas
-app.use(injectCsrfToken); // Inyectar token en respuestas JSON
 app.use((req, res, next) => {
     res.locals.isAdmin = req.session.user?.role === 'admin' || false;
     res.locals.user    = res.locals.user || null;
@@ -133,3 +240,4 @@ const startServer = async () => {
 };
 
 startServer();
+ 

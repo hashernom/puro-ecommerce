@@ -365,33 +365,113 @@ La API utiliza express-validator para validaciones. Los errores de validación r
 
 ## Seguridad
 
-- **CSRF Protection**: Todos los endpoints POST/PUT/DELETE requieren token CSRF
-- **Helmet**: Headers de seguridad HTTP
-- **CORS**: Configuración de origen cruzado
-- **Rate Limiting**: Límite de solicitudes por IP
-- **SQL Injection Prevention**: Sequelize con parámetros preparados
-- **XSS Protection**: Sanitización de inputs
+La aplicación implementa múltiples capas de seguridad para proteger contra vulnerabilidades comunes:
 
-## Variables de Entorno
+### Medidas Implementadas
+
+1. **Protección CSRF (Cross-Site Request Forgery)**
+   - Implementación real con `csrf-csrf` (double submit cookie pattern)
+   - Tokens generados automáticamente para todas las vistas
+   - Validación en todas las rutas POST/PUT/DELETE
+   - Excepciones configuradas para APIs públicas y webhooks
+
+2. **Headers de Seguridad HTTP**
+   - Helmet.js con configuración CSP personalizada
+   - Headers adicionales: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
+   - Referrer-Policy: strict-origin-when-cross-origin
+   - Permissions-Policy para restringir características del navegador
+
+3. **CORS Seguro**
+   - Configuración restringida por origen (`ALLOWED_ORIGINS`)
+   - Métodos HTTP permitidos configurados (`ALLOWED_METHODS`)
+   - Headers personalizados permitidos (`ALLOWED_HEADERS`)
+   - Credenciales controladas por entorno
+
+4. **Rate Limiting**
+   - Límite general: 100 solicitudes por IP cada 15 minutos
+   - Límite estricto para autenticación: 10 intentos cada 15 minutos
+   - Headers estándar para información de límites
+   - Mensajes de error personalizados
+
+5. **Prevención de SQL Injection**
+   - Sequelize ORM con parámetros preparados
+   - Validación estricta de parámetros de ruta (`middleware/paramValidation.js`)
+   - Type checking para todos los IDs numéricos
+   - Middleware global de sanitización
+
+6. **Protección XSS (Cross-Site Scripting)**
+   - Sanitización automática de inputs en body y query params
+   - Escape de caracteres HTML en strings
+   - Validación de tipos de datos con express-validator
+   - Middleware de validación global (`middleware/globalValidation.js`)
+
+7. **Gestión Segura de Secrets**
+   - Validación de variables de entorno críticas en producción
+   - Generación automática de secrets aleatorios en desarrollo
+   - Fallback controlado con advertencias explícitas
+   - Error fatal si faltan secrets en producción
+
+8. **Validación de Inputs**
+   - Middleware de validación global para tipos de datos comunes
+   - Sanitización básica contra XSS
+   - Validación de emails, números, strings y precios
+   - Manejador de errores de validación unificado
+
+9. **Seguridad de Sesiones**
+   - Cookies HTTP-only y Secure (en producción)
+   - SameSite strict para cookies CSRF
+   - Tiempo de expiración configurable
+   - Store en base de datos con Sequelize
+
+### Configuración de Variables de Entorno
+
+Las siguientes variables son críticas para seguridad:
 
 ```env
-# Base de datos
-DATABASE_URL=postgresql://user:password@localhost:5432/puro_db
-
-# Servidor
+# ── Servidor ──────────────────────────────────────────────────────────────
 PORT=3000
 NODE_ENV=development
-SESSION_SECRET=secret_key
 
-# Stripe
+# ── Base de datos ────────────────────────────────────────────────────────
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=puro_db
+DB_USER=postgres
+DB_PASSWORD=tu_password
+
+# ── Sesiones y Autenticación ─────────────────────────────────────────────
+SESSION_SECRET=tu_super_secret_key_aleatoria
+CSRF_SECRET=opcional_secret_para_csrf  # Si no se define, se genera automáticamente
+
+# ── CORS (Seguridad de Orígenes Cruzados) ────────────────────────────────
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+ALLOWED_METHODS=GET,POST,PUT,PATCH,DELETE,OPTIONS
+ALLOWED_HEADERS=Content-Type,Authorization,X-CSRF-Token
+CORS_CREDENTIALS=true
+
+# ── Stripe (Pagos) ──────────────────────────────────────────────────────
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 
-# Email
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=tu_email@gmail.com
+# ── Email ────────────────────────────────────────────────────────────────
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu_email@gmail.com
+SMTP_PASSWORD=tu_password_email
+EMAIL_FROM=noreply@puro.com
+
+# ── Cloudinary (Opcional - Imágenes) ────────────────────────────────────
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+**Notas importantes:**
+1. `SESSION_SECRET` debe ser una cadena larga y aleatoria (mínimo 32 caracteres)
+2. En producción, `NODE_ENV` debe ser `production` para habilitar cookies secure
+3. `ALLOWED_ORIGINS` debe listar solo los dominios permitidos en producción
+4. Las variables marcadas como opcionales tienen valores por defecto seguros para desarrollo
 EMAIL_PASSWORD=tu_contraseña
 
 # Cloudinary (opcional)
