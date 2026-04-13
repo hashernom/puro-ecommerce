@@ -1,4 +1,5 @@
 // orders.js - Frontend del carrito
+console.log('✅ orders.js cargado - versión 20260413');
 document.addEventListener('DOMContentLoaded', loadCart);
 
 async function loadCart() {
@@ -48,11 +49,17 @@ function renderEmptyCart() {
 }
 
 async function updateQty(productId, quantity) {
+    if (quantity < 0) return;
     try {
-        const response = await fetch(`/orders/cart/${productId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quantity }) });
+        const response = await fetch(`/orders/cart/${productId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quantity })
+        });
         const data = await response.json();
         if (data.success) renderCart(data.data);
-    } catch (e) {}
+        else alert(data.message || 'Error al actualizar');
+    } catch (e) { alert('Error de conexión'); }
 }
 
 async function removeItem(productId) {
@@ -60,7 +67,8 @@ async function removeItem(productId) {
         const response = await fetch(`/orders/cart/${productId}`, { method: 'DELETE' });
         const data = await response.json();
         if (data.success) renderCart(data.data);
-    } catch (e) {}
+        else alert('Error: ' + data.message);
+    } catch (e) { console.error(e); alert('Error de conexión'); }
 }
 
 function proceedToCheckout() {
@@ -72,10 +80,29 @@ async function submitOrder() {
     const address = document.getElementById('shipping_address').value.trim();
     const notes = document.getElementById('order_notes').value.trim();
     if (!address || address.length < 10) { alert('Por favor ingresa una dirección válida (mínimo 10 caracteres)'); return; }
+    
+    const btn = document.querySelector('#checkoutModal .btn-success');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+    btn.disabled = true;
+    
     try {
-        const response = await fetch('/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shipping_address: address, notes }) });
+        const response = await fetch('/payment/create-checkout-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shipping_address: address, notes })
+        });
         const data = await response.json();
-        if (data.success) { window.location.href = '/orders/user'; }
-        else alert(data.message || 'Error al crear el pedido');
-    } catch (e) { alert('Error de conexión'); }
+        if (data.success && data.url) {
+            window.location.href = data.url;
+        } else {
+            alert(data.message || (data.errors && data.errors.join(', ')) || 'Error al procesar pago. Verifica configuración de Stripe.');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    } catch (e) {
+        alert('Error de conexión');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }

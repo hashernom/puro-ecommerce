@@ -116,6 +116,21 @@
             <label class="form-label fw-semibold">Stock *</label>
             <input type="number" id="productoStock" class="form-control" min="0" required>
           </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Categoría</label>
+            <select id="productoCategoria" class="form-select">
+                <option value="natural">Natural</option>
+                <option value="energetico">Energético</option>
+                <option value="detox">Detox</option>
+                <option value="inmunologico">Inmunológico</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-center mt-3">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="productoActivo" checked>
+                <label class="form-check-label">Activo</label>
+            </div>
+          </div>
           <div class="col-md-8">
             <label class="form-label fw-semibold">URL de Imagen</label>
             <input type="text" id="productoImagen" class="form-control" placeholder="/images/nombre.jpg">
@@ -135,4 +150,4 @@
     </div>
   </div>
 </div>
-<script src="/js/admin.js"></script>
+<script src="/js/admin.js?v=20260413"></script>

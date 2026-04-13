@@ -50,9 +50,11 @@ validateEnvVars();
 app.use(helmet({ contentSecurityPolicy: { directives: {
     defaultSrc: ["'self'"],
     styleSrc:   ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
-    scriptSrc:  ["'self'", "https://cdn.jsdelivr.net"],
+    scriptSrc:  ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+    scriptSrcAttr: ["'unsafe-inline'"],
     imgSrc:     ["'self'", "data:", "https:"],
-    fontSrc:    ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"]
+    fontSrc:    ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+    connectSrc: ["'self'", "https://cdn.jsdelivr.net"]
 }}}));
 
 // Headers de seguridad adicionales

@@ -340,7 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function applyFilters() {
-        currentFilters.category = document.getElementById('filterCategory').value;
+        const catVal = document.getElementById('filterCategory').value;
+        currentFilters.category = (catVal === 'all') ? '' : catVal; // ← fix
         currentFilters.minPrice = document.getElementById('minPrice').value;
         currentFilters.maxPrice = document.getElementById('maxPrice').value;
         currentFilters.inStock = document.getElementById('filterStock').value;

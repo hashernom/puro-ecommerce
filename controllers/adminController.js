@@ -245,17 +245,53 @@ class AdminController {
     // ── API: Crear producto desde admin ───────────────────────────────────
     static async createProduct(req, res) {
         try {
-            const { name, description, price, stock, image_url } = req.body;
+            const { name, description, price, stock, image_url, category, is_active } = req.body;
+            
+            // Validaciones básicas
+            if (!name || !price) {
+                return res.status(400).json({ success: false, message: 'Nombre y precio son requeridos' });
+            }
+            
+            // Validación de precio: máximo 99,999,999.99 para DECIMAL(10,2)
+            const priceNum = parseFloat(price);
+            if (isNaN(priceNum) || priceNum <= 0) {
+                return res.status(400).json({ success: false, message: 'Precio debe ser un número positivo' });
+            }
+            
+            if (priceNum > 99999999.99) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Precio máximo permitido es 99,999,999.99'
+                });
+            }
+            
+            // Verificar si ya existe producto con mismo nombre
             const exists = await Product.findOne({ where: { name } });
             if (exists) return res.status(400).json({ success: false, message: 'Ya existe un producto con ese nombre' });
+            
+            // Crear producto con todos los campos
             const product = await Product.create({
-                name, description, price: parseFloat(price),
-                stock: parseInt(stock),
-                image_url: image_url || '/images/default-product.svg'
+                name,
+                description: description || '',
+                price: priceNum,
+                stock: parseInt(stock) || 0,
+                image_url: image_url || '/images/default-product.svg',
+                category: category || 'natural',
+                is_active: is_active !== undefined ? (is_active === true || is_active === 'true') : true
             });
+            
             res.status(201).json({ success: true, message: 'Producto creado', data: product });
         } catch (error) {
             console.error('createProduct error:', error);
+            
+            // Manejar errores específicos de base de datos
+            if (error.name === 'SequelizeDatabaseError') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Error de validación de datos: ' + error.message
+                });
+            }
+            
             res.status(500).json({ success: false, message: 'Error del servidor' });
         }
     }
@@ -264,12 +300,49 @@ class AdminController {
     static async updateProduct(req, res) {
         try {
             const { id } = req.params;
-            const { name, description, price, stock, image_url, is_active } = req.body;
+            const { name, description, price, stock, image_url, is_active, category } = req.body;
+            
             const product = await Product.findByPk(id);
             if (!product) return res.status(404).json({ success: false, message: 'Producto no encontrado' });
-            await product.update({ name, description, price, stock, image_url, is_active });
+            
+            // Validación de precio si se está actualizando
+            if (price !== undefined) {
+                const priceNum = parseFloat(price);
+                if (isNaN(priceNum) || priceNum <= 0) {
+                    return res.status(400).json({ success: false, message: 'Precio debe ser un número positivo' });
+                }
+                
+                if (priceNum > 99999999.99) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Precio máximo permitido es 99,999,999.99'
+                    });
+                }
+            }
+            
+            // Preparar datos para actualizar
+            const updateData = {};
+            if (name !== undefined) updateData.name = name;
+            if (description !== undefined) updateData.description = description;
+            if (price !== undefined) updateData.price = parseFloat(price);
+            if (stock !== undefined) updateData.stock = parseInt(stock) || 0;
+            if (image_url !== undefined) updateData.image_url = image_url;
+            if (is_active !== undefined) updateData.is_active = is_active === true || is_active === 'true';
+            if (category !== undefined) updateData.category = category;
+            
+            await product.update(updateData);
             res.json({ success: true, message: 'Producto actualizado', data: product });
         } catch (error) {
+            console.error('updateProduct error:', error);
+            
+            // Manejar errores específicos de base de datos
+            if (error.name === 'SequelizeDatabaseError') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Error de validación de datos: ' + error.message
+                });
+            }
+            
             res.status(500).json({ success: false, message: 'Error del servidor' });
         }
     }
