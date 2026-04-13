@@ -11,7 +11,7 @@ const rateLimit = require('express-rate-limit');
 
 const { sequelize } = require('./models');
 const { loadUser } = require('./middleware/auth');
-const { generateToken, doubleCsrfProtection } = require('./middleware/csrf-real');
+const { generateToken, doubleCsrfProtection } = require('./middleware/csrf');
 
 const authRoutes    = require('./routes/auth');
 const productRoutes = require('./routes/products');
@@ -94,9 +94,12 @@ app.use(cors(corsOptions));
 
 // ── Rate Limiting ─────────────────────────────────────────────────────────
 // Limitar peticiones para prevenir ataques de fuerza bruta y DDoS
+// En desarrollo, límites más altos para facilitar testing
+const isDevelopment = ENV === 'development';
+
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100, // Límite de 100 peticiones por IP por ventana
+    max: isDevelopment ? 1000 : 100, // 1000 en desarrollo, 100 en producción
     message: {
         success: false,
         error: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo en 15 minutos'
@@ -108,7 +111,7 @@ const generalLimiter = rateLimit({
 // Limiter más estricto para autenticación
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 10, // Solo 10 intentos de login por IP
+    max: isDevelopment ? 100 : 10, // 100 en desarrollo, 10 en producción
     message: {
         success: false,
         error: 'Demasiados intentos de autenticación, por favor intenta de nuevo en 15 minutos'

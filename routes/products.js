@@ -6,11 +6,13 @@ const { validateProduct, validateProductUpdate, handleValidationErrors } = requi
 
 // ── Vistas públicas ────────────────────────────────────────────────────────
 router.get('/',    ProductController.showCatalog);
-router.get('/:id', ProductController.showDetail);       // ← detalle de producto
 
 // ── API pública ────────────────────────────────────────────────────────────
 router.get('/api',     ProductController.listProducts);
 router.get('/api/:id', ProductController.getProduct);
+
+// ── Detalle de producto (debe ir después de rutas específicas) ────────────
+router.get('/:id', ProductController.showDetail);
 
 // ── API admin ──────────────────────────────────────────────────────────────
 router.get('/admin/list', requireAuth, requireAdmin, ProductController.adminListProducts);
